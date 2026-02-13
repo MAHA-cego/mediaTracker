@@ -31,5 +31,10 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/me", "/api/media-entry/:path*", "/api/friends/:path*"],
+  matcher: [
+    "/api/me",
+    "/api/media-entry/:path*",
+    "/api/friends/:path*",
+    "/api/groups/:path*",
+  ],
 };

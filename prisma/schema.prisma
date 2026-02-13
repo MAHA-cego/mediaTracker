@@ -146,13 +146,13 @@ model GroupMediaEntry {
   startedAt   DateTime?
   completedAt DateTime?
   createdAt   DateTime    @default(now())
-  updateAt    DateTime    @updatedAt
+  updatedAt   DateTime    @updatedAt
   addedById   String
 
   group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   media   Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  addedBy User  @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  addedBy User  @relation(fields: [addedById], references: [id])
 
   @@unique([groupId, mediaId])
-  @@index([groupId])
+  @@index([groupId, mediaId])
 }
