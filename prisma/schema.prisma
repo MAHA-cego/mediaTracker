@@ -20,6 +20,16 @@ model User {
   passwordHash String
   createdAt    DateTime     @default(now())
   entries      MediaEntry[]
+
+  sentRequests     FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+
+  friendshipsA Friendship[] @relation("FriendA")
+  friendshipsB Friendship[] @relation("FriendB")
+
+  groupsCreated    Group[]
+  groupMemberships GroupMember[]
+  groupEntries     GroupMediaEntry[]
 }
 
 enum MediaType {
@@ -44,11 +54,12 @@ enum MediaStatus {
 }
 
 model Media {
-  id        String       @id @default(uuid())
-  title     String
-  type      MediaType
-  createdAt DateTime     @default(now())
-  entries   MediaEntry[]
+  id                String            @id @default(uuid())
+  title             String
+  type              MediaType
+  createdAt         DateTime          @default(now())
+  entries           MediaEntry[]
+  groupMediaEntries GroupMediaEntry[]
 }
 
 model MediaEntry {
@@ -66,4 +77,82 @@ model MediaEntry {
   media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
   @@unique([userId, mediaId])
+}
+
+model FriendRequest {
+  id          String   @id @default(uuid())
+  requesterId String
+  receiverId  String
+  createdAt   DateTime @default(now())
+
+  requester User @relation("SentRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  receiver  User @relation("ReceivedRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, receiverId])
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  userAId   String
+  userBId   String
+  createdAt DateTime @default(now())
+
+  userA User @relation("FriendA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("FriendB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  createdAt   DateTime @default(now())
+  createdById String
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  members GroupMember[]
+  entries GroupMediaEntry[]
+
+  @@unique([createdById, name])
+  @@index([createdById])
+}
+
+enum GroupRole {
+  OWNER
+  MEMBER
+}
+
+model GroupMember {
+  groupId  String
+  userId   String
+  role     GroupRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+  @@index([userId])
+}
+
+model GroupMediaEntry {
+  id          String      @id @default(uuid())
+  groupId     String
+  mediaId     String
+  status      MediaStatus @default(PLANNED)
+  rating      Int?
+  progress    Int?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updateAt    DateTime    @updatedAt
+  addedById   String
+
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  media   Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  addedBy User  @relation(fields: [addedById], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, mediaId])
+  @@index([groupId])
 }
