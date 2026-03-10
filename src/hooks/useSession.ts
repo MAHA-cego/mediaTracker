@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiClientFetch } from "@/lib/api-client";
 
 export type User = {
   id: string;
@@ -20,7 +20,7 @@ export function useSession() {
   });
 
   useEffect(() => {
-    apiFetch<User>("/api/me")
+    apiClientFetch<User>("/api/me")
       .then((user) => {
         setSession({
           status: "authenticated",

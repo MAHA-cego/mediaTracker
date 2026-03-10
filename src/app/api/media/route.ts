@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 export async function POST(req: Request) {
   try {
@@ -23,6 +23,34 @@ export async function POST(req: Request) {
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const search = req.nextUrl.searchParams.get("search");
+
+    if (!search || search.length < 2) {
+      return NextResponse.json([]);
+    }
+
+    const media = await prisma.media.findMany({
+      where: {
+        title: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+      take: 10,
+    });
+
+    return NextResponse.json(media);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Failed to search media" },
       { status: 500 },
     );
   }

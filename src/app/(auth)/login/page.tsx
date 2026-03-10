@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiClientFetch } from "@/lib/api-client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function LoginPage() {
     e.preventDefault();
 
     try {
-      await apiFetch("/api/login", {
+      await apiClientFetch("/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

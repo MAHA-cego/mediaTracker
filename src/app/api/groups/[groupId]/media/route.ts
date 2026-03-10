@@ -71,6 +71,7 @@ export async function GET(
 ) {
   try {
     const userId = req.headers.get("x-user-id");
+
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -89,6 +90,8 @@ export async function GET(
         },
       },
     });
+
+    console.log("membership query result:", membership);
 
     if (!membership) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
@@ -110,15 +113,17 @@ export async function GET(
 
     let orderBy: any = { createdAt: "desc" };
 
-    if (sort === "rating_desc") {
-      orderBy = { rating: "desc" };
-    } else if (sort === "created_desc") {
-      orderBy = { createdAt: "asc" };
-    } else {
-      return NextResponse.json(
-        { error: "Invalid sort parameter" },
-        { status: 400 },
-      );
+    if (sort) {
+      if (sort === "rating_desc") {
+        orderBy = { rating: "desc" };
+      } else if (sort === "created_desc") {
+        orderBy = { createdAt: "asc" };
+      } else {
+        return NextResponse.json(
+          { error: "Invalid sort parameter" },
+          { status: 400 },
+        );
+      }
     }
 
     const entries = await prisma.groupMediaEntry.findMany({
