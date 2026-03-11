@@ -9,7 +9,7 @@ export default async function DashboardPage() {
     <div>
       <h1>Your Media</h1>
 
-      <MediaList media={media} />
+      <MediaList media={media} scope={{ type: "USER" }} />
     </div>
   );
 }

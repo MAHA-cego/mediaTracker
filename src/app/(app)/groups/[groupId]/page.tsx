@@ -20,7 +20,7 @@ export default async function GroupPage({
 
       <AddGroupMediaForm groupId={groupId} />
 
-      <MediaList media={media} />
+      <MediaList media={media} scope={{ type: "GROUP", groupId }} />
     </div>
   );
 }
