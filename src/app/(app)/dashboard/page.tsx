@@ -1,15 +1,23 @@
-import { apiServerFetch } from "@/lib/api-server";
-import { MediaEntry } from "@/types/media";
-import MediaList from "@/components/media/MediaList";
+import Link from "next/link";
 
 export default async function DashboardPage() {
-  const media = await apiServerFetch<MediaEntry[]>("/api/media-entry");
-
   return (
     <div>
-      <h1>Your Media</h1>
+      <h1>Dashboard</h1>
 
-      <MediaList media={media} scope={{ type: "USER" }} />
+      <ul>
+        <li>
+          <Link href="/media">Your Media</Link>
+        </li>
+
+        <li>
+          <Link href="/groups">Groups</Link>
+        </li>
+
+        <li>
+          <Link href="/friends">Friends</Link>
+        </li>
+      </ul>
     </div>
   );
 }

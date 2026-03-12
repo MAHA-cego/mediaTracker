@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { error } from "console";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 export async function PATCH(
   req: Request,
@@ -89,5 +88,37 @@ export async function DELETE(
       { error: "Internal server error" },
       { status: 500 },
     );
+  }
+}
+
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const userId = req.headers.get("x-user-id");
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await context.params;
+
+    const entry = await prisma.mediaEntry.findUnique({
+      where: { id },
+      include: {
+        media: true,
+      },
+    });
+
+    if (!entry || entry.userId !== userId) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(entry);
+  } catch (error: any) {
+    console.error(error);
+
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

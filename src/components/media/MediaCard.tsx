@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClientFetch } from "@/lib/api-client";
 import { MediaEntry } from "@/types/media";
+import Link from "next/link";
 
 type Props = {
   entry: MediaEntry;
@@ -46,59 +47,9 @@ export default function MediaCard({ entry, scope }: Props) {
         borderRadius: "8px",
       }}
     >
-      <h3>{entry.media.title}</h3>
-
-      <div>
-        <label>Status:</label>
-
-        <select
-          value={status}
-          onChange={(e) => {
-            const value = e.target.value;
-            setStatus(value);
-            update({ status: value });
-          }}
-        >
-          <option value="PLANNED">Planned</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="DROPPED">Dropped</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Rating:</label>
-
-        <select
-          value={rating}
-          onChange={(e) => {
-            const value = Number(e.target.value);
-            setRating(value);
-            update({ rating: value });
-          }}
-        >
-          <option value={0}>None</option>
-          {[1, 2, 3, 4, 5].map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label>Progress:</label>
-
-        <input
-          type="number"
-          value={progress}
-          onChange={(e) => {
-            const value = Number(e.target.value);
-            setProgress(value);
-            update({ progress: value });
-          }}
-        />
-      </div>
+      <h3>
+        <Link href={`/media/${entry.id}`}>{entry.media.title}</Link>
+      </h3>
     </div>
   );
 }
