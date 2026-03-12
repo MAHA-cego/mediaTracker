@@ -9,14 +9,24 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const receiverId = body.receiverId;
+    const { username } = body;
 
-    if (!receiverId) {
+    if (!username) {
       return NextResponse.json(
-        { error: "ReceiverId is required" },
+        { error: "Username is required" },
         { status: 400 },
       );
     }
+
+    const receiver = await prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (!receiver) {
+      return NextResponse.json({ error: "user not found" }, { status: 404 });
+    }
+
+    const receiverId = receiver.id;
 
     if (receiverId === userId) {
       return NextResponse.json(
