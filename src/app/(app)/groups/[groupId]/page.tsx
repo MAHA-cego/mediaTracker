@@ -2,12 +2,13 @@ import { apiServerFetch } from "@/lib/api-server";
 import { MediaEntry } from "@/types/media";
 import { ScopeProvider } from "@/context/ScopeContext";
 
-import MediaList from "@/components/media/MediaList";
 import AddGroupMediaForm from "@/components/groups/AddGroupMediaForm";
 import AddGroupMember from "@/components/groups/AddGroupMember";
 import GroupMembers from "@/components/groups/GroupMembers";
 import GroupActions from "@/components/groups/GroupActions";
 import TransferOwnership from "@/components/groups/TransferOwnership";
+import MediaList from "@/components/media/MediaList";
+import MediaFilters from "@/components/media/MediaFilters";
 
 type User = {
   id: string;
@@ -27,13 +28,24 @@ type Group = {
 
 export default async function GroupPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ groupId: string }>;
+  searchParams: Promise<{
+    status?: string;
+    sort?: string;
+  }>;
 }) {
   const { groupId } = await params;
+  const filters = await searchParams;
+
+  const query = new URLSearchParams();
+
+  if (filters.status) query.set("status", filters.status);
+  if (filters.sort) query.set("sort", filters.sort);
 
   const media = await apiServerFetch<MediaEntry[]>(
-    `/api/groups/${groupId}/media`,
+    `/api/groups/${groupId}/media?${query.toString()}`,
   );
 
   const friends = await apiServerFetch<User[]>("/api/friends");
@@ -64,6 +76,8 @@ export default async function GroupPage({
         <AddGroupMember groupId={groupId} friends={availableFriends} />
 
         <AddGroupMediaForm groupId={groupId} />
+
+        <MediaFilters />
 
         <MediaList media={media} />
 
