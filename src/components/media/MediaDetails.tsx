@@ -83,7 +83,7 @@ export default function MediaDetail({ entry }: Props) {
       </div>
 
       <div>
-        <label>Progress</label>
+        <label>Progress </label>
 
         <input
           type="number"
