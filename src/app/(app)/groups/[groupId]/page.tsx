@@ -1,5 +1,7 @@
 import { apiServerFetch } from "@/lib/api-server";
 import { MediaEntry } from "@/types/media";
+import { ScopeProvider } from "@/context/ScopeContext";
+
 import MediaList from "@/components/media/MediaList";
 import AddGroupMediaForm from "@/components/groups/AddGroupMediaForm";
 import AddGroupMember from "@/components/groups/AddGroupMember";
@@ -47,28 +49,30 @@ export default async function GroupPage({
   const isLastOwner = group.role === "OWNER" && ownerCount === 1;
 
   return (
-    <div>
-      <h1>{group.name}</h1>
+    <ScopeProvider scope={{ type: "GROUP", groupId }}>
+      <div>
+        <h1>{group.name}</h1>
 
-      <GroupMembers members={group.members} />
+        <GroupMembers members={group.members} />
 
-      <AddGroupMember groupId={groupId} friends={availableFriends} />
+        <TransferOwnership
+          groupId={groupId}
+          members={group.members}
+          role={group.role}
+        />
 
-      <TransferOwnership
-        groupId={groupId}
-        members={group.members}
-        role={group.role}
-      />
+        <AddGroupMember groupId={groupId} friends={availableFriends} />
 
-      <AddGroupMediaForm groupId={groupId} />
+        <AddGroupMediaForm groupId={groupId} />
 
-      <MediaList media={media} scope={{ type: "GROUP", groupId }} />
+        <MediaList media={media} />
 
-      <GroupActions
-        groupId={groupId}
-        role={group.role}
-        isLastOwner={isLastOwner}
-      />
-    </div>
+        <GroupActions
+          groupId={groupId}
+          role={group.role}
+          isLastOwner={isLastOwner}
+        />
+      </div>
+    </ScopeProvider>
   );
 }

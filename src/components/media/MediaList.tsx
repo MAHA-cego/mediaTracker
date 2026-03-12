@@ -3,11 +3,9 @@ import MediaCard from "./MediaCard";
 
 type Props = {
   media: MediaEntry[];
-
-  scope: { type: "USER" } | { type: "GROUP"; groupId: string };
 };
 
-export default function MediaList({ media, scope }: Props) {
+export default function MediaList({ media }: Props) {
   if (media.length === 0) {
     return <p>No media tracked yet.</p>;
   }
@@ -20,7 +18,7 @@ export default function MediaList({ media, scope }: Props) {
       }}
     >
       {media.map((entry) => (
-        <MediaCard key={entry.id} entry={entry} scope={scope} />
+        <MediaCard key={entry.id} entry={entry} />
       ))}
     </div>
   );
