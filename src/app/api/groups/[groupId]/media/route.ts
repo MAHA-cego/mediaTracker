@@ -77,10 +77,16 @@ export async function GET(
     }
 
     const { groupId } = await context.params;
+
     const { searchParams } = req.nextUrl;
 
     const status = searchParams.get("status");
     const sort = searchParams.get("sort");
+
+    const page = Number(searchParams.get("page") ?? 1);
+    const limit = 10;
+
+    const skip = (page - 1) * limit;
 
     const membership = await prisma.groupMember.findUnique({
       where: {
@@ -90,8 +96,6 @@ export async function GET(
         },
       },
     });
-
-    console.log("membership query result:", membership);
 
     if (!membership) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
@@ -113,28 +117,31 @@ export async function GET(
 
     let orderBy: any = { createdAt: "desc" };
 
-    if (sort) {
-      if (sort === "rating_desc") {
-        orderBy = { rating: "desc" };
-      } else if (sort === "created_desc") {
-        orderBy = { createdAt: "asc" };
-      } else {
-        return NextResponse.json(
-          { error: "Invalid sort parameter" },
-          { status: 400 },
-        );
-      }
+    if (sort === "rating_desc") {
+      orderBy = { rating: "desc" };
     }
 
-    const entries = await prisma.groupMediaEntry.findMany({
+    const items = await prisma.groupMediaEntry.findMany({
       where,
-      orderBy,
       include: {
         media: true,
       },
+      orderBy,
+      skip,
+      take: limit,
     });
 
-    return NextResponse.json(entries);
+    const total = await prisma.groupMediaEntry.count({
+      where,
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return NextResponse.json({
+      items,
+      page,
+      totalPages,
+    });
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ error: error.message }, { status: 500 });

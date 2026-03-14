@@ -11,3 +11,9 @@ export type MediaEntry = {
     type: string;
   };
 };
+
+export type PaginatedMedia = {
+  items: MediaEntry[];
+  page: number;
+  totalPages: number;
+};

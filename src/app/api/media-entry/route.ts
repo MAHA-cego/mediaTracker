@@ -53,11 +53,16 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status");
   const sort = searchParams.get("sort");
 
+  const page = Number(searchParams.get("page") ?? 1);
+  const limit = 10;
+
+  const skip = (page - 1) * limit;
+
   const where: any = { userId };
 
-  if (status) {
-    const validStatuses = ["PLANNED", "IN_PROGRESS", "COMPLETED", "DROPPED"];
+  const validStatuses = ["PLANNED", "IN_PROGRESS", "COMPLETED", "DROPPED"];
 
+  if (status) {
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
         { error: "Invalid status filter" },
@@ -74,17 +79,25 @@ export async function GET(req: NextRequest) {
     orderBy = { rating: "desc" };
   }
 
-  if (sort === "created_asc") {
-    orderBy = { createdAt: "asc" };
-  }
-
-  const entries = await prisma.mediaEntry.findMany({
+  const items = await prisma.mediaEntry.findMany({
     where,
     include: {
       media: true,
     },
     orderBy,
+    skip,
+    take: limit,
   });
 
-  return NextResponse.json(entries);
+  const total = await prisma.mediaEntry.count({
+    where,
+  });
+
+  const totalPages = Math.ceil(total / limit);
+
+  return NextResponse.json({
+    items,
+    page,
+    totalPages,
+  });
 }

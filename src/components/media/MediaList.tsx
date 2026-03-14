@@ -5,7 +5,7 @@ type Props = {
   media: MediaEntry[];
 };
 
-export default function MediaList({ media }: Props) {
+export default function MediaList({ media = [] }: Props) {
   if (media.length === 0) {
     return <p>No media tracked yet.</p>;
   }

@@ -21,6 +21,11 @@ export default function AddGroupMediaForm({ groupId }: Props) {
   async function handleSelect(media: Media) {
     setLoading(true);
 
+    if (!media?.id) {
+      console.error("Invalid media object", media);
+      return;
+    }
+
     try {
       await apiClientFetch(`/api/groups/${groupId}/media`, {
         method: "POST",

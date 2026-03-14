@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(media, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -47,8 +47,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(media);
-  } catch (error) {
-    console.error(error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to search media" },
       { status: 500 },

@@ -77,6 +77,7 @@ model MediaEntry {
   media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
   @@unique([userId, mediaId])
+  @@unique([createdAt, id])
 }
 
 model FriendRequest {

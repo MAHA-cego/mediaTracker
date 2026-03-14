@@ -1,12 +1,16 @@
 import { apiServerFetch } from "@/lib/api-server";
-import { MediaEntry } from "@/types/media";
 import { ScopeProvider } from "@/context/ScopeContext";
+
+import { PaginatedMedia } from "@/types/media";
+
+import Link from "next/link";
 
 import AddGroupMediaForm from "@/components/groups/AddGroupMediaForm";
 import AddGroupMember from "@/components/groups/AddGroupMember";
 import GroupMembers from "@/components/groups/GroupMembers";
 import GroupActions from "@/components/groups/GroupActions";
 import TransferOwnership from "@/components/groups/TransferOwnership";
+
 import MediaList from "@/components/media/MediaList";
 import MediaFilters from "@/components/media/MediaFilters";
 
@@ -34,17 +38,21 @@ export default async function GroupPage({
   searchParams: Promise<{
     status?: string;
     sort?: string;
+    page?: string;
   }>;
 }) {
   const { groupId } = await params;
   const filters = await searchParams;
 
+  const page = Number(filters.page ?? 1);
+
   const query = new URLSearchParams();
 
   if (filters.status) query.set("status", filters.status);
   if (filters.sort) query.set("sort", filters.sort);
+  query.set("page", page.toString());
 
-  const media = await apiServerFetch<MediaEntry[]>(
+  const result = await apiServerFetch<PaginatedMedia>(
     `/api/groups/${groupId}/media?${query.toString()}`,
   );
 
@@ -79,7 +87,46 @@ export default async function GroupPage({
 
         <MediaFilters />
 
-        <MediaList media={media} />
+        <MediaList media={result.items} />
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            marginTop: "20px",
+          }}
+        >
+          {page > 1 ? (
+            <Link
+              href={`/groups/${groupId}?${new URLSearchParams({
+                ...filters,
+                page: String(page - 1),
+              }).toString()}`}
+            >
+              Previous
+            </Link>
+          ) : (
+            <span style={{ opacity: 0.5 }}>Previous</span>
+          )}
+
+          <span>
+            Page {result.page} / {result.totalPages}
+          </span>
+
+          {page < result.totalPages ? (
+            <Link
+              href={`/groups/${groupId}?${new URLSearchParams({
+                ...filters,
+                page: String(page + 1),
+              }).toString()}`}
+            >
+              Next
+            </Link>
+          ) : (
+            <span style={{ opacity: 0.5 }}>Next</span>
+          )}
+        </div>
 
         <GroupActions
           groupId={groupId}
