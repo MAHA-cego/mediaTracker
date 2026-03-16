@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { getPagination } from "@/lib/pagination";
 
 export async function POST(req: Request) {
   try {
@@ -53,10 +54,7 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status");
   const sort = searchParams.get("sort");
 
-  const page = Number(searchParams.get("page") ?? 1);
-  const limit = 10;
-
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = getPagination(searchParams);
 
   const where: any = { userId };
 
