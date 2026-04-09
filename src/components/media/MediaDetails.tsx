@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClientFetch } from "@/lib/api-client";
+import { useScope } from "@/context/ScopeContext";
 
 type MediaEntry = {
   id: string;
@@ -23,6 +24,8 @@ type Props = {
 
 export default function MediaDetail({ entry }: Props) {
   const router = useRouter();
+
+  const scope = useScope();
 
   const [status, setStatus] = useState(entry.status);
   const [rating, setRating] = useState(entry.rating ?? 0);

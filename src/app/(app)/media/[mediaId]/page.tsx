@@ -1,4 +1,5 @@
 import { apiServerFetch } from "@/lib/api-server";
+import { ScopeProvider } from "@/context/ScopeContext";
 import MediaDetails from "@/components/media/MediaDetails";
 
 type MediaEntry = {
@@ -24,8 +25,10 @@ export default async function MediaPage({
   const entry = await apiServerFetch<MediaEntry>(`/api/media-entry/${mediaId}`);
 
   return (
-    <div>
-      <MediaDetails entry={entry} />
-    </div>
+    <ScopeProvider scope={{ type: "USER" }}>
+      <div>
+        <MediaDetails entry={entry} />
+      </div>
+    </ScopeProvider>
   );
 }

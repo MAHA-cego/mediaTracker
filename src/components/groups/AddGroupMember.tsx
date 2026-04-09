@@ -39,7 +39,7 @@ export default function AddGroupMember({ groupId, friends }: Props) {
 
   return (
     <div>
-      <h3>Add Member</h3>
+      <h3>Invite Member</h3>
 
       <select value={selected} onChange={(e) => setSelected(e.target.value)}>
         <option value="">Select friend</option>

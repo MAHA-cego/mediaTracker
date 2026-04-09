@@ -51,10 +51,26 @@ export default function FriendRequests({ requests }: Props) {
             {req.requester.username}
 
             <button
-              onClick={() => acceptRequest(req.id)}
-              style={{ marginLeft: "10px" }}
+              onClick={async () => {
+                await apiClientFetch(`/api/friends/accept`, {
+                  method: "POST",
+                  body: JSON.stringify({ requestId: req.id }),
+                  headers: { "Content-Type": "application/json" },
+                });
+                router.refresh();
+              }}
             >
               Accept
+            </button>
+            <button
+              onClick={async () => {
+                await apiClientFetch(`/api/friend/request/${req.id}`, {
+                  method: "DELETE",
+                });
+                router.refresh();
+              }}
+            >
+              Decline
             </button>
           </li>
         ))}

@@ -13,21 +13,20 @@ export async function POST(
     }
 
     const { groupId } = await context.params;
-    const body = await req.json();
-    const { userId } = body;
+    const { userId } = await req.json();
 
-    if (!userId || typeof userId !== "string") {
+    if (!userId) {
       return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
     }
 
     if (userId === requesterId) {
       return NextResponse.json(
-        { error: "You are already in the group" },
+        { error: "Cannot invite yourself" },
         { status: 400 },
       );
     }
 
-    const requesterMembership = await prisma.groupMember.findUnique({
+    const membership = await prisma.groupMember.findUnique({
       where: {
         groupId_userId: {
           groupId,
@@ -36,62 +35,48 @@ export async function POST(
       },
     });
 
-    if (!requesterMembership || requesterMembership.role !== "OWNER") {
+    if (!membership || membership.role !== "OWNER") {
       return NextResponse.json(
-        { error: "Only owners can add members" },
+        { error: "Only owners can invite" },
         { status: 403 },
       );
     }
 
-    const targetUser = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!targetUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const [userAId, userBId] =
-      requesterId < userId ? [requesterId, userId] : [userId, requesterId];
-
-    const friendship = await prisma.friendship.findUnique({
+    const existingMember = await prisma.groupMember.findUnique({
       where: {
-        userAId_userBId: {
-          userAId,
-          userBId,
+        groupId_userId: {
+          groupId,
+          userId,
         },
       },
     });
 
-    if (!friendship) {
+    if (existingMember) {
       return NextResponse.json(
-        { error: "You can only add friends to a group" },
-        { status: 403 },
+        { error: "User is already a member of this group" },
+        { status: 400 },
       );
     }
 
     try {
-      await prisma.groupMember.create({
+      const invite = await prisma.groupInvite.create({
         data: {
           groupId,
-          userId,
-          role: "MEMBER",
+          inviterId: requesterId,
+          receiverId: userId,
         },
       });
+
+      return NextResponse.json({ invite }, { status: 201 });
     } catch (error: any) {
       if (error.code === "P2002") {
         return NextResponse.json(
-          { error: "User is already a member of this group" },
+          { error: "Invite already sent to this user" },
           { status: 400 },
         );
       }
       throw error;
     }
-
-    return NextResponse.json(
-      { message: "Member added successfully" },
-      { status: 201 },
-    );
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ error: error.message }, { status: 500 });
