@@ -1,10 +1,9 @@
 import Link from "next/link";
+import AddMediaEntry from "@/components/media/AddMediaEntry";
 
 export default async function DashboardPage() {
   return (
     <div>
-      <h1>Dashboard</h1>
-
       <ul>
         <li>
           <Link href="/media">Your Media</Link>
@@ -16,6 +15,9 @@ export default async function DashboardPage() {
 
         <li>
           <Link href="/friends">Friends</Link>
+        </li>
+        <li>
+          <AddMediaEntry />
         </li>
       </ul>
     </div>
