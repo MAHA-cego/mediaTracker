@@ -87,7 +87,7 @@ export async function PATCH(
       updateData.startedAt = new Date();
     }
 
-    if (status === "COMPLETED") {
+    if (status === "COMPLETED" && !existing.completedAt) {
       updateData.completedAt = new Date();
     }
 
@@ -102,8 +102,8 @@ export async function PATCH(
     });
 
     return NextResponse.json(updated);
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

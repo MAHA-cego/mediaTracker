@@ -7,7 +7,7 @@ export async function apiServerFetch<T>(
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.toString();
 
-  const res = await fetch(`http://localhost:3000${path}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}${path}`, {
     ...options,
     headers: {
       ...(options?.headers || {}),

@@ -72,7 +72,13 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(request, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Friend request already exists" },
+        { status: 409 },
+      );
+    }
     console.error(error);
     return NextResponse.json(
       { error: "Internal server error" },

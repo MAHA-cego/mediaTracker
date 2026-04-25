@@ -1,3 +1,9 @@
+export type Media = {
+  id: string;
+  title: string;
+  type: string;
+};
+
 export type MediaEntry = {
   id: string;
 

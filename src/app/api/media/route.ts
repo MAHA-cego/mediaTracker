@@ -36,6 +36,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json([]);
     }
 
+    if (search.length > 100) {
+      return NextResponse.json([]);
+    }
+
     const media = await prisma.media.findMany({
       where: {
         title: {

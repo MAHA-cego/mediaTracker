@@ -28,15 +28,14 @@ export default function MediaDetail({ entry }: Props) {
   const [rating, setRating] = useState(entry.rating ?? 0);
   const [progress, setProgress] = useState(entry.progress ?? 0);
 
-  async function update(data: any) {
+  async function update(
+    data: Partial<{ status: string; rating: number | null; progress: number | null }>,
+  ) {
     await apiClientFetch(`/api/media-entry/${entry.id}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-
     router.refresh();
   }
 
@@ -50,9 +49,10 @@ export default function MediaDetail({ entry }: Props) {
         <select
           value={status}
           onChange={(e) => {
+            const prev = status;
             const value = e.target.value;
             setStatus(value);
-            update({ status: value });
+            update({ status: value }).catch(() => setStatus(prev));
           }}
         >
           <option value="PLANNED">Planned</option>
@@ -68,9 +68,10 @@ export default function MediaDetail({ entry }: Props) {
         <select
           value={rating}
           onChange={(e) => {
+            const prev = rating;
             const value = Number(e.target.value);
             setRating(value);
-            update({ rating: value });
+            update({ rating: value === 0 ? null : value }).catch(() => setRating(prev));
           }}
         >
           <option value={0}>None</option>
@@ -89,9 +90,10 @@ export default function MediaDetail({ entry }: Props) {
           type="number"
           value={progress}
           onChange={(e) => {
+            const prev = progress;
             const value = Number(e.target.value);
             setProgress(value);
-            update({ progress: value });
+            update({ progress: value }).catch(() => setProgress(prev));
           }}
         />
       </div>

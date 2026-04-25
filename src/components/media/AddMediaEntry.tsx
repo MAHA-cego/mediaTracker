@@ -3,11 +3,7 @@
 import { useRouter } from "next/navigation";
 import { apiClientFetch } from "@/lib/api-client";
 import MediaSearch from "./MediaSearch";
-
-type Media = {
-  id: string;
-  title: string;
-};
+import type { Media } from "@/types/media";
 
 export default function AddMediaEntry() {
   const router = useRouter();

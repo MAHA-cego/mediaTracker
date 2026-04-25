@@ -4,11 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClientFetch } from "@/lib/api-client";
 import MediaSearch from "@/components/media/MediaSearch";
-
-type Media = {
-  id: string;
-  title: string;
-};
+import type { Media } from "@/types/media";
 
 type Props = {
   groupId: string;

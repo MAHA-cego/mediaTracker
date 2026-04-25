@@ -42,31 +42,33 @@ export async function POST(req: NextRequest) {
         ? [request.requesterId, request.receiverId]
         : [request.receiverId, request.requesterId];
 
-    const existingFriendship = await prisma.friendship.findUnique({
-      where: {
-        userAId_userBId: {
-          userAId,
-          userBId,
-        },
-      },
-    });
+    try {
+      const friendship = await prisma.$transaction(async (tx) => {
+        const existing = await tx.friendship.findUnique({
+          where: { userAId_userBId: { userAId, userBId } },
+        });
 
-    if (existingFriendship) {
-      return NextResponse.json({ error: "Already friends" }, { status: 409 });
+        if (existing) {
+          throw Object.assign(new Error("Already friends"), { status: 409 });
+        }
+
+        const created = await tx.friendship.create({
+          data: { userAId, userBId },
+        });
+
+        await tx.friendRequest.delete({ where: { id: requestId } });
+
+        return created;
+      });
+
+      return NextResponse.json(friendship);
+    } catch (error: any) {
+      if (error.status === 409) {
+        return NextResponse.json({ error: error.message }, { status: 409 });
+      }
+      console.error(error);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
-
-    const friendship = await prisma.friendship.create({
-      data: {
-        userAId,
-        userBId,
-      },
-    });
-
-    await prisma.friendRequest.delete({
-      where: { id: requestId },
-    });
-
-    return NextResponse.json(friendship);
   } catch (error) {
     console.error(error);
     return NextResponse.json(

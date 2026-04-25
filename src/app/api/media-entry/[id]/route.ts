@@ -22,9 +22,29 @@ export async function PATCH(
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
     }
 
-    const updateData: any = {};
+    const allowedStatuses = ["PLANNED", "IN_PROGRESS", "COMPLETED", "DROPPED"];
 
-    if (body.status) {
+    if (body.status !== undefined) {
+      if (!allowedStatuses.includes(body.status)) {
+        return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+      }
+    }
+
+    if (body.rating !== undefined) {
+      if (body.rating !== null && (typeof body.rating !== "number" || body.rating < 1 || body.rating > 5)) {
+        return NextResponse.json({ error: "Rating must be between 1 and 5" }, { status: 400 });
+      }
+    }
+
+    if (body.progress !== undefined) {
+      if (body.progress !== null && (typeof body.progress !== "number" || body.progress < 0)) {
+        return NextResponse.json({ error: "Invalid progress value" }, { status: 400 });
+      }
+    }
+
+    const updateData: Record<string, unknown> = {};
+
+    if (body.status !== undefined) {
       updateData.status = body.status;
 
       if (body.status === "IN_PROGRESS" && !existing.startedAt) {
@@ -116,9 +136,8 @@ export async function GET(
     }
 
     return NextResponse.json(entry);
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -110,7 +110,7 @@ model Group {
   createdAt   DateTime @default(now())
   createdById String
 
-  createdBy User @relation(fields: [createdById], references: [id])
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   members GroupMember[]
   entries GroupMediaEntry[]
@@ -152,8 +152,8 @@ model GroupMediaEntry {
 
   group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   media   Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  addedBy User  @relation(fields: [addedById], references: [id])
+  addedBy User  @relation(fields: [addedById], references: [id], onDelete: Cascade)
 
   @@unique([groupId, mediaId])
-  @@index([groupId, mediaId])
+  @@index([addedById])
 }
