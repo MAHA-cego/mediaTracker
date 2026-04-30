@@ -67,10 +67,17 @@ export async function GET(req: NextRequest) {
 
     const memberships = await prisma.groupMember.findMany({
       where: { userId },
-      include: { group: true },
+      include: {
+        group: {
+          include: { _count: { select: { members: true } } },
+        },
+      },
     });
 
-    const groups = memberships.map((m) => m.group);
+    const groups = memberships.map((m) => ({
+      ...m.group,
+      memberCount: m.group._count.members,
+    }));
 
     await cacheSet(key, groups, 120);
     return NextResponse.json(groups);

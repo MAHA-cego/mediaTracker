@@ -1,3 +1,8 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { apiClientFetch } from "@/lib/api-client";
+
 type User = {
   id: string;
   username: string;
@@ -8,24 +13,31 @@ type Props = {
 };
 
 export default function FriendList({ friends }: Props) {
+  const router = useRouter();
+
+  async function removeFriend(friendId: string) {
+    await apiClientFetch(`/api/friends/${friendId}`, { method: "DELETE" });
+    router.refresh();
+  }
+
   if (friends.length === 0) {
     return (
       <div>
-        <h3>Your friends</h3>
         <p>No friends yet.</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <h3>Your Friends</h3>
-
-      <ul>
-        {friends.map((friends) => (
-          <li key={friends.id}>{friends.username}</li>
-        ))}
-      </ul>
-    </div>
+    <ul>
+      {friends.map((friend) => (
+        <li key={friend.id}>
+          {friend.username}
+          <button onClick={() => removeFriend(friend.id)} style={{ marginLeft: "10px" }}>
+            Remove
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

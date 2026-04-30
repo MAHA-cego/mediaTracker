@@ -9,7 +9,6 @@ type MediaEntry = {
   status: string;
   rating: number | null;
   progress: number | null;
-
   media: {
     id: string;
     title: string;
@@ -19,83 +18,108 @@ type MediaEntry = {
 
 type Props = {
   entry: MediaEntry;
+  patchUrl: string;
+  deleteUrl?: string;
+  redirectAfterDelete: string;
+  extraInfo?: React.ReactNode;
 };
 
-export default function MediaDetail({ entry }: Props) {
+export default function MediaDetails({
+  entry,
+  patchUrl,
+  deleteUrl,
+  redirectAfterDelete,
+  extraInfo,
+}: Props) {
   const router = useRouter();
-
+  const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState(entry.status);
   const [rating, setRating] = useState(entry.rating ?? 0);
   const [progress, setProgress] = useState(entry.progress ?? 0);
 
-  async function update(
-    data: Partial<{ status: string; rating: number | null; progress: number | null }>,
-  ) {
-    await apiClientFetch(`/api/media-entry/${entry.id}`, {
+  async function save() {
+    await apiClientFetch(patchUrl, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        status,
+        rating: rating === 0 ? null : rating,
+        progress,
+      }),
     });
+    setEditing(false);
     router.refresh();
+  }
+
+  async function remove() {
+    if (!deleteUrl) return;
+    await apiClientFetch(deleteUrl, { method: "DELETE" });
+    router.push(redirectAfterDelete);
   }
 
   return (
     <div>
-      <h1>{entry.media.title}</h1>
-
       <div>
-        <label>Status</label>
-
-        <select
-          value={status}
-          onChange={(e) => {
-            const prev = status;
-            const value = e.target.value;
-            setStatus(value);
-            update({ status: value }).catch(() => setStatus(prev));
-          }}
-        >
-          <option value="PLANNED">Planned</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="DROPPED">Dropped</option>
-        </select>
+        <h1>{entry.media.title}</h1>
+        {!editing && <button onClick={() => setEditing(true)}>Edit</button>}
+        {editing && (
+          <>
+            <button onClick={save}>Done</button>
+            {deleteUrl && <button onClick={remove}>Delete</button>}
+          </>
+        )}
       </div>
 
-      <div>
-        <label>Rating</label>
-
-        <select
-          value={rating}
-          onChange={(e) => {
-            const prev = rating;
-            const value = Number(e.target.value);
-            setRating(value);
-            update({ rating: value === 0 ? null : value }).catch(() => setRating(prev));
-          }}
-        >
-          <option value={0}>None</option>
-          {[1, 2, 3, 4, 5].map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </select>
-      </div>
+      {extraInfo}
 
       <div>
-        <label>Progress </label>
+        <p>Type: {entry.media.type}</p>
 
-        <input
-          type="number"
-          value={progress}
-          onChange={(e) => {
-            const prev = progress;
-            const value = Number(e.target.value);
-            setProgress(value);
-            update({ progress: value }).catch(() => setProgress(prev));
-          }}
-        />
+        {editing ? (
+          <div>
+            <label>Status </label>
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="PLANNED">Planned</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="DROPPED">Dropped</option>
+            </select>
+          </div>
+        ) : (
+          <p>Status: {entry.status}</p>
+        )}
+
+        {editing ? (
+          <div>
+            <label>Rating </label>
+            <select
+              value={rating}
+              onChange={(e) => setRating(Number(e.target.value))}
+            >
+              <option value={0}>None</option>
+              {[1, 2, 3, 4, 5].map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <p>Rating: {entry.rating ?? "None"}</p>
+        )}
+
+        {editing ? (
+          <div>
+            <label>Progress </label>
+            <input
+              type="number"
+              value={progress}
+              onChange={(e) => setProgress(Number(e.target.value))}
+            />
+          </div>
+        ) : (
+          <p>Progress: {entry.progress ?? 0}</p>
+        )}
       </div>
     </div>
   );

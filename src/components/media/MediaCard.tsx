@@ -5,9 +5,10 @@ import Link from "next/link";
 
 type Props = {
   entry: MediaEntry;
+  href?: string;
 };
 
-export default function MediaCard({ entry }: Props) {
+export default function MediaCard({ entry, href }: Props) {
   return (
     <div
       style={{
@@ -17,7 +18,7 @@ export default function MediaCard({ entry }: Props) {
       }}
     >
       <h3>
-        <Link href={`/media/${entry.id}`}>{entry.media.title}</Link>
+        <Link href={href ?? `/media/${entry.id}`}>{entry.media.title}</Link>
       </h3>
     </div>
   );

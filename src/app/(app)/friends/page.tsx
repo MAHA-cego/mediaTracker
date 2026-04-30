@@ -15,20 +15,24 @@ type FriendRequest = {
 
 export default async function FriendsPage() {
   const friends = await apiServerFetch<User[]>("/api/friends");
-
-  const requests = await apiServerFetch<FriendRequest[]>(
-    "/api/friends/requests",
-  );
+  const requests = await apiServerFetch<FriendRequest[]>("/api/friends/requests");
 
   return (
     <div>
-      <h1>Friends</h1>
-
+      <h1>My Friends</h1>
       <SendFriendRequest />
 
-      <FriendRequests requests={requests} />
+      <div style={{ display: "flex", gap: "32px", marginTop: "16px" }}>
+        <div style={{ flex: 1 }}>
+          <h2>Friends</h2>
+          <FriendList friends={friends} />
+        </div>
 
-      <FriendList friends={friends} />
+        <div style={{ flex: 1 }}>
+          <h2>Requests</h2>
+          <FriendRequests requests={requests} />
+        </div>
+      </div>
     </div>
   );
 }

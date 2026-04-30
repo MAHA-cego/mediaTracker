@@ -1,50 +1,23 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import Link from "next/link";
+import { apiServerFetch } from "@/lib/api-server";
+import Topbar from "@/components/layout/Topbar";
+
+type User = { id: string; username: string; email: string };
+type Group = { id: string; name: string };
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
+  const user = await apiServerFetch<User>("/api/me").catch(() => null);
+  if (!user) redirect("/login");
 
-  const res = await fetch("http://localhost:3000/api/me", {
-    headers: {
-      Cookie: cookieStore.toString(),
-    },
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    redirect("/login");
-  }
-
-  const user = await res.json();
+  const groups = await apiServerFetch<Group[]>("/api/groups").catch(() => []);
 
   return (
-    <div
-      style={{
-        maxWidth: "900px",
-        margin: "0 auto",
-        padding: "20px",
-      }}
-    >
-      <header
-        style={{
-          display: "flex",
-          gap: "20px",
-          borderBottom: "1px solid #ddd",
-          paddingBottom: "12px",
-          marginBottom: "20px",
-        }}
-      >
-        <Link href="/dashboard">Dashboard</Link>
-        <Link href="/media">Media</Link>
-        <Link href="/groups">Groups</Link>
-        <Link href="/friends">Friends</Link>
-      </header>
-
+    <div>
+      <Topbar user={user} groups={groups} />
       <main>{children}</main>
     </div>
   );

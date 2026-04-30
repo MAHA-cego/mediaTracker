@@ -3,9 +3,10 @@ import MediaCard from "./MediaCard";
 
 type Props = {
   media: MediaEntry[];
+  getHref?: (entry: MediaEntry) => string;
 };
 
-export default function MediaList({ media = [] }: Props) {
+export default function MediaList({ media = [], getHref }: Props) {
   if (media.length === 0) {
     return <p>No media tracked yet.</p>;
   }
@@ -18,7 +19,7 @@ export default function MediaList({ media = [] }: Props) {
       }}
     >
       {media.map((entry) => (
-        <MediaCard key={entry.id} entry={entry} />
+        <MediaCard key={entry.id} entry={entry} href={getHref?.(entry)} />
       ))}
     </div>
   );

@@ -5,21 +5,24 @@ import MediaCard from "@/components/media/MediaCard";
 import MediaFilters from "@/components/media/MediaFilters";
 import Link from "next/link";
 
-export default async function MediaPage({
+export default async function GroupMediaPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ groupId: string }>;
   searchParams: Promise<{ status?: string; sort?: string; page?: string }>;
 }) {
-  const params = await searchParams;
-  const page = Number(params.page ?? 1);
+  const { groupId } = await params;
+  const filters = await searchParams;
+  const page = Number(filters.page ?? 1);
 
   const query = new URLSearchParams();
-  if (params.status) query.set("status", params.status);
-  if (params.sort) query.set("sort", params.sort);
+  if (filters.status) query.set("status", filters.status);
+  if (filters.sort) query.set("sort", filters.sort);
   query.set("page", page.toString());
 
   const result = await apiServerFetch<PaginatedMedia>(
-    `/api/media-entry?${query.toString()}`,
+    `/api/groups/${groupId}/media?${query.toString()}`,
   );
 
   const items = result.items;
@@ -29,12 +32,12 @@ export default async function MediaPage({
   const emptySlots = GRID_SIZE - filledSlots - 1;
 
   return (
-    <ScopeProvider scope={{ type: "USER" }}>
+    <ScopeProvider scope={{ type: "GROUP", groupId }}>
       <div>
         <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-          <h1>My Medias</h1>
+          <h1>Group Medias</h1>
           <MediaFilters />
-          <Link href="/media/new">Add Media</Link>
+          <Link href={`/groups/${groupId}/media/new`}>Add Media</Link>
         </div>
 
         <div
@@ -46,10 +49,14 @@ export default async function MediaPage({
           }}
         >
           {items.slice(0, filledSlots).map((entry) => (
-            <MediaCard key={entry.id} entry={entry} />
+            <MediaCard
+              key={entry.id}
+              entry={entry}
+              href={`/groups/${groupId}/media/${entry.media.id}`}
+            />
           ))}
 
-          <Link href="/media/new">
+          <Link href={`/groups/${groupId}/media/new`}>
             <div style={{ border: "1px dashed #ccc", padding: "16px" }}>+ Add Media</div>
           </Link>
 
@@ -60,7 +67,9 @@ export default async function MediaPage({
 
         <div style={{ display: "flex", alignItems: "center", gap: "16px", marginTop: "20px" }}>
           {page > 1 ? (
-            <Link href={`/media?${new URLSearchParams({ ...params, page: String(page - 1) }).toString()}`}>
+            <Link
+              href={`/groups/${groupId}/media?${new URLSearchParams({ ...filters, page: String(page - 1) }).toString()}`}
+            >
               Previous
             </Link>
           ) : (
@@ -68,7 +77,9 @@ export default async function MediaPage({
           )}
           <span>Page {result.page} / {result.totalPages}</span>
           {page < result.totalPages ? (
-            <Link href={`/media?${new URLSearchParams({ ...params, page: String(page + 1) }).toString()}`}>
+            <Link
+              href={`/groups/${groupId}/media?${new URLSearchParams({ ...filters, page: String(page + 1) }).toString()}`}
+            >
               Next
             </Link>
           ) : (

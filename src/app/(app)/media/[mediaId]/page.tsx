@@ -6,7 +6,6 @@ type MediaEntry = {
   status: string;
   rating: number | null;
   progress: number | null;
-
   media: {
     id: string;
     title: string;
@@ -20,12 +19,16 @@ export default async function MediaPage({
   params: Promise<{ mediaId: string }>;
 }) {
   const { mediaId } = await params;
-
   const entry = await apiServerFetch<MediaEntry>(`/api/media-entry/${mediaId}`);
 
   return (
     <div>
-      <MediaDetails entry={entry} />
+      <MediaDetails
+        entry={entry}
+        patchUrl={`/api/media-entry/${entry.id}`}
+        deleteUrl={`/api/media-entry/${entry.id}`}
+        redirectAfterDelete="/media"
+      />
     </div>
   );
 }
