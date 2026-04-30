@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getPagination } from "@/lib/pagination";
+import { cacheGet, cacheSet, bumpNamespaceVersion, getNamespaceVersion, CacheKey } from "@/lib/cache";
+import { enqueue } from "@/lib/queue";
 
 export async function POST(req: Request) {
   try {
@@ -26,6 +28,9 @@ export async function POST(req: Request) {
         status: body.status ?? "PLANNED",
       },
     });
+
+    await bumpNamespaceVersion(CacheKey.userEntriesNs(userId));
+    enqueue({ type: "MEDIA_ENTRY_CREATED", userId, entryId: entry.id, mediaId: body.mediaId });
 
     return NextResponse.json(entry, { status: 201 });
   } catch (error: any) {
@@ -77,25 +82,25 @@ export async function GET(req: NextRequest) {
     orderBy = { rating: "desc" };
   }
 
+  const ns = CacheKey.userEntriesNs(userId);
+  const version = await getNamespaceVersion(ns);
+  const cacheKey = `${ns}:v${version}:${page}:${status ?? "all"}:${sort ?? "default"}`;
+
+  const cached = await cacheGet<unknown>(cacheKey);
+  if (cached) return NextResponse.json(cached);
+
   const items = await prisma.mediaEntry.findMany({
     where,
-    include: {
-      media: true,
-    },
+    include: { media: true },
     orderBy,
     skip,
     take: limit,
   });
 
-  const total = await prisma.mediaEntry.count({
-    where,
-  });
-
+  const total = await prisma.mediaEntry.count({ where });
   const totalPages = Math.ceil(total / limit);
 
-  return NextResponse.json({
-    items,
-    page,
-    totalPages,
-  });
+  const result = { items, page, totalPages };
+  await cacheSet(cacheKey, result, 60);
+  return NextResponse.json(result);
 }

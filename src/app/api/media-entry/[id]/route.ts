@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse, NextRequest } from "next/server";
+import { bumpNamespaceVersion, CacheKey } from "@/lib/cache";
+import { enqueue } from "@/lib/queue";
 
 export async function PATCH(
   req: Request,
@@ -69,6 +71,9 @@ export async function PATCH(
       data: updateData,
     });
 
+    await bumpNamespaceVersion(CacheKey.userEntriesNs(userId));
+    enqueue({ type: "MEDIA_ENTRY_UPDATED", userId, entryId });
+
     return NextResponse.json(updated);
   } catch {
     return NextResponse.json(
@@ -98,9 +103,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
     }
 
-    await prisma.mediaEntry.delete({
-      where: { id: entryId },
-    });
+    await prisma.mediaEntry.delete({ where: { id: entryId } });
+
+    await bumpNamespaceVersion(CacheKey.userEntriesNs(userId));
+    enqueue({ type: "MEDIA_ENTRY_DELETED", userId, entryId });
 
     return NextResponse.json({ message: "Deleted" });
   } catch {

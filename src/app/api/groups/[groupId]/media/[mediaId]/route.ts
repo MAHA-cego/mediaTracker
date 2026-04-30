@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { bumpNamespaceVersion, CacheKey } from "@/lib/cache";
+import { enqueue } from "@/lib/queue";
 
 export async function PATCH(
   req: NextRequest,
@@ -100,6 +102,9 @@ export async function PATCH(
       },
       data: updateData,
     });
+
+    await bumpNamespaceVersion(CacheKey.groupMediaNs(groupId));
+    enqueue({ type: "GROUP_MEDIA_UPDATED", groupId, mediaId });
 
     return NextResponse.json(updated);
   } catch (error) {

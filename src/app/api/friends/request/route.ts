@@ -1,11 +1,28 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limit";
+import { cacheDel, CacheKey } from "@/lib/cache";
+import { enqueue } from "@/lib/queue";
 
 export async function POST(req: NextRequest) {
   try {
     const userId = req.headers.get("x-user-id");
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { allowed, retryAfter } = await rateLimit(
+      "friend-request",
+      userId,
+      20,
+      60 * 60 * 1000,
+    );
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many friend requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
+      );
     }
 
     const body = await req.json();
@@ -65,11 +82,11 @@ export async function POST(req: NextRequest) {
     }
 
     const request = await prisma.friendRequest.create({
-      data: {
-        requesterId: userId,
-        receiverId,
-      },
+      data: { requesterId: userId, receiverId },
     });
+
+    await cacheDel(CacheKey.userFriendRequests(receiverId));
+    enqueue({ type: "FRIEND_REQUEST_SENT", requesterId: userId, receiverId });
 
     return NextResponse.json(request, { status: 201 });
   } catch (error: any) {

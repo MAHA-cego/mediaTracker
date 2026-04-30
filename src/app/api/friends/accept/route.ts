@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { cacheDel, CacheKey } from "@/lib/cache";
+import { enqueue } from "@/lib/queue";
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,6 +62,13 @@ export async function POST(req: NextRequest) {
 
         return created;
       });
+
+      await cacheDel(
+        CacheKey.userFriends(userAId),
+        CacheKey.userFriends(userBId),
+        CacheKey.userFriendRequests(userId),
+      );
+      enqueue({ type: "FRIEND_ACCEPTED", userAId, userBId });
 
       return NextResponse.json(friendship);
     } catch (error: any) {

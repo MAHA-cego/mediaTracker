@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cacheGet, cacheSet, cacheDel, bumpNamespaceVersion, CacheKey } from "@/lib/cache";
+import { enqueue } from "@/lib/queue";
 
 export async function GET(
   req: NextRequest,
@@ -26,17 +28,26 @@ export async function GET(
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
+    type CachedGroup = {
+      id: string;
+      name: string;
+      createdAt: string;
+      members: { id: string; username: string; role: string }[];
+    };
+
+    const cacheKey = CacheKey.groupDetails(groupId);
+    const cached = await cacheGet<CachedGroup>(cacheKey);
+
+    if (cached) {
+      return NextResponse.json({ ...cached, role: membership.role });
+    }
+
     const group = await prisma.group.findUnique({
       where: { id: groupId },
       include: {
         members: {
           include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-              },
-            },
+            user: { select: { id: true, username: true } },
           },
         },
       },
@@ -46,20 +57,22 @@ export async function GET(
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
-    return NextResponse.json({
+    const groupData: CachedGroup = {
       id: group.id,
       name: group.name,
-      createdAt: group.createdAt,
-      role: membership.role,
+      createdAt: group.createdAt.toISOString(),
       members: group.members.map((m) => ({
         id: m.user.id,
         username: m.user.username,
         role: m.role,
       })),
-    });
-  } catch (error: any) {
+    };
+
+    await cacheSet(cacheKey, groupData, 120);
+    return NextResponse.json({ ...groupData, role: membership.role });
+  } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -91,13 +104,26 @@ export async function DELETE(
       );
     }
 
-    await prisma.group.delete({
-      where: { id: groupId },
+    const members = await prisma.groupMember.findMany({
+      where: { groupId },
+      select: { userId: true },
     });
 
+    await prisma.group.delete({ where: { id: groupId } });
+
+    const memberIds = members.map((m) => m.userId);
+    await Promise.all([
+      cacheDel(
+        CacheKey.groupDetails(groupId),
+        ...memberIds.map(CacheKey.userGroups),
+      ),
+      bumpNamespaceVersion(CacheKey.groupMediaNs(groupId)),
+    ]);
+    enqueue({ type: "GROUP_DELETED", groupId, memberIds });
+
     return NextResponse.json({ message: "Group deleted successfully" });
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

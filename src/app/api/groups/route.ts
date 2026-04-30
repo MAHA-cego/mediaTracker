@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { cacheGet, cacheSet, cacheDel, CacheKey } from "@/lib/cache";
+import { enqueue } from "@/lib/queue";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,6 +35,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await cacheDel(CacheKey.userGroups(userId));
+    enqueue({ type: "GROUP_CREATED", groupId: group.id, creatorId: userId });
+
     return NextResponse.json(group, { status: 201 });
   } catch (error: any) {
     if (error.code === "P2002") {
@@ -56,15 +61,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const key = CacheKey.userGroups(userId);
+    const cached = await cacheGet<unknown[]>(key);
+    if (cached) return NextResponse.json(cached);
+
     const memberships = await prisma.groupMember.findMany({
       where: { userId },
-      include: {
-        group: true,
-      },
+      include: { group: true },
     });
 
     const groups = memberships.map((m) => m.group);
 
+    await cacheSet(key, groups, 120);
     return NextResponse.json(groups);
   } catch (error) {
     console.error(error);

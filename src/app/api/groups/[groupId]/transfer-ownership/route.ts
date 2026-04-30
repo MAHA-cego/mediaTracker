@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { cacheDel, CacheKey } from "@/lib/cache";
 
 export async function POST(
   req: NextRequest,
@@ -75,10 +76,11 @@ export async function POST(
       }),
     ]);
 
-    return NextResponse.json({ message: "Ownership transferred" });
-  } catch (error: any) {
-    console.error(error);
+    await cacheDel(CacheKey.groupDetails(groupId));
 
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ message: "Ownership transferred" });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

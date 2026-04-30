@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getPagination } from "@/lib/pagination";
+import { cacheGet, cacheSet, bumpNamespaceVersion, getNamespaceVersion, CacheKey } from "@/lib/cache";
+import { enqueue } from "@/lib/queue";
 
 export async function POST(
   req: NextRequest,
@@ -50,6 +52,9 @@ export async function POST(
         },
       });
 
+      await bumpNamespaceVersion(CacheKey.groupMediaNs(groupId));
+      enqueue({ type: "GROUP_MEDIA_ADDED", groupId, mediaId, addedById: userId });
+
       return NextResponse.json(entry, { status: 201 });
     } catch (error: any) {
       if (error.code === "P2002") {
@@ -60,9 +65,9 @@ export async function POST(
       }
       throw error;
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -119,29 +124,29 @@ export async function GET(
       orderBy = { rating: "desc" };
     }
 
+    const ns = CacheKey.groupMediaNs(groupId);
+    const version = await getNamespaceVersion(ns);
+    const cacheKey = `${ns}:v${version}:${page}:${status ?? "all"}:${sort ?? "default"}`;
+
+    const cached = await cacheGet<unknown>(cacheKey);
+    if (cached) return NextResponse.json(cached);
+
     const items = await prisma.groupMediaEntry.findMany({
       where,
-      include: {
-        media: true,
-      },
+      include: { media: true },
       orderBy,
       skip,
       take: limit,
     });
 
-    const total = await prisma.groupMediaEntry.count({
-      where,
-    });
-
+    const total = await prisma.groupMediaEntry.count({ where });
     const totalPages = Math.ceil(total / limit);
 
-    return NextResponse.json({
-      items,
-      page,
-      totalPages,
-    });
-  } catch (error: any) {
+    const result = { items, page, totalPages };
+    await cacheSet(cacheKey, result, 60);
+    return NextResponse.json(result);
+  } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cacheDel, CacheKey } from "@/lib/cache";
+import { enqueue } from "@/lib/queue";
 
 export async function POST(
   req: NextRequest,
@@ -53,9 +55,12 @@ export async function POST(
       },
     });
 
+    await cacheDel(CacheKey.userGroups(userId), CacheKey.groupDetails(groupId));
+    enqueue({ type: "GROUP_MEMBER_LEFT", groupId, userId });
+
     return NextResponse.json({ message: "Left group successfully" });
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
