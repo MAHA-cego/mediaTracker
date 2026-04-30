@@ -14,14 +14,14 @@ export default function ScopeChooser({ groups }: Props) {
 
   const groupMatch = pathname.match(/^\/groups\/([^/]+)/);
   const activeGroupId = groupMatch?.[1] ?? null;
-  const currentValue = activeGroupId ? `/groups/${activeGroupId}` : "/dashboard";
+  const currentValue = activeGroupId ? `/groups/${activeGroupId}` : "/";
 
   return (
     <select
       value={currentValue}
       onChange={(e) => router.push(e.target.value)}
     >
-      <option value="/dashboard">Personal</option>
+      <option value="/">Personal</option>
       {groups.map((g) => (
         <option key={g.id} value={`/groups/${g.id}`}>
           {g.name}

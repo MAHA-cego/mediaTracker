@@ -12,7 +12,7 @@ type Props = {
 export default function Topbar({ user, groups }: Props) {
   return (
     <header>
-      <Link href="/dashboard">Keepsake</Link>
+      <Link href="/">Keepsake</Link>
       <ScopeChooser groups={groups} />
       <span>{user.username}</span>
       <LogoutButton />
