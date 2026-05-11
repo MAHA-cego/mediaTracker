@@ -89,7 +89,7 @@ export async function GET(
     const status = searchParams.get("status");
     const sort = searchParams.get("sort");
 
-    const { page, limit, skip } = getPagination(searchParams);
+    const { page, limit, skip } = getPagination(searchParams, 12);
 
     const membership = await prisma.groupMember.findUnique({
       where: {

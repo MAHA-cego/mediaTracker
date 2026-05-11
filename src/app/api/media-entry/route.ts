@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status");
   const sort = searchParams.get("sort");
 
-  const { page, limit, skip } = getPagination(searchParams);
+  const { page, limit, skip } = getPagination(searchParams, 12);
 
   const where: any = { userId };
 

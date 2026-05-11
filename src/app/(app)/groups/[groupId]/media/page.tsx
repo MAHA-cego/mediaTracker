@@ -27,9 +27,8 @@ export default async function GroupMediaPage({
 
   const items = result.items;
   const GRID_SIZE = 12;
-  const addMediaIndex = items.length < GRID_SIZE ? items.length : GRID_SIZE - 1;
-  const filledSlots = Math.min(items.length, addMediaIndex);
-  const emptySlots = GRID_SIZE - filledSlots - 1;
+  const isFull = items.length >= GRID_SIZE;
+  const emptySlots = isFull ? 0 : GRID_SIZE - items.length - 1;
 
   return (
     <ScopeProvider scope={{ type: "GROUP", groupId }}>
@@ -48,7 +47,7 @@ export default async function GroupMediaPage({
             marginTop: "16px",
           }}
         >
-          {items.slice(0, filledSlots).map((entry) => (
+          {items.slice(0, isFull ? GRID_SIZE : items.length).map((entry) => (
             <MediaCard
               key={entry.id}
               entry={entry}
@@ -56,9 +55,11 @@ export default async function GroupMediaPage({
             />
           ))}
 
-          <Link href={`/groups/${groupId}/media/new`}>
-            <div style={{ border: "1px dashed #ccc", padding: "16px" }}>+ Add Media</div>
-          </Link>
+          {!isFull && (
+            <Link href={`/groups/${groupId}/media/new`}>
+              <div style={{ border: "1px dashed #ccc", padding: "16px" }}>+ Add Media</div>
+            </Link>
+          )}
 
           {Array.from({ length: emptySlots }).map((_, i) => (
             <div key={i} style={{ border: "1px solid #eee", padding: "16px" }} />

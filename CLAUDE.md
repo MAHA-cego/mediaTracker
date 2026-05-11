@@ -1,4 +1,4 @@
-# media-tracker
+# Keepsake
 
 Media tracking web app for books, manga, movies, anime, games, and more — with social features (friends, groups).
 
@@ -39,10 +39,21 @@ Path alias: `@/*` → `src/*`
 ```
 src/
 ├── app/
-│   ├── (auth)/          # Login page (unauthenticated layout)
-│   ├── (app)/           # Protected pages (redirects to /login if no session)
+│   ├── (auth)/          # Unauthenticated pages (login, register)
+│   ├── (app)/           # Protected pages — layout redirects to /login if no session
+│   │   ├── page.tsx     # Dashboard (/)
+│   │   ├── media/       # /media, /media/new, /media/[mediaId]
+│   │   ├── friends/     # /friends
+│   │   ├── groups/      # /groups, /groups/[id], /groups/[id]/media,
+│   │   │                #   /groups/[id]/media/new, /groups/[id]/media/[mediaId],
+│   │   │                #   /groups/[id]/members
+│   │   └── layout.tsx   # Fetches /api/me + /api/groups; renders Topbar; redirects if unauthed
 │   └── api/             # REST API route handlers
-├── components/          # React components (friends/, groups/, media/, layout/)
+├── components/
+│   ├── layout/          # Topbar, ScopeChooser, LogoutButton
+│   ├── friends/         # FriendList, FriendRequests, SendFriendRequest
+│   ├── groups/          # GroupMembers, GroupActions, AddGroupMember, TransferOwnership, CreateGroupForm, AddGroupMediaForm
+│   └── media/           # MediaCard, MediaList, MediaFilters, MediaDetails, MediaSearch, AddMediaEntry
 ├── context/             # ScopeContext — personal vs. group scope
 ├── hooks/               # useSession
 ├── lib/
@@ -60,13 +71,13 @@ src/
 │       ├── friendship.ts # FRIEND_REQUEST_SENT, FRIEND_ACCEPTED
 │       ├── media.ts      # MEDIA_ENTRY_*
 │       └── group.ts      # GROUP_*
-├── proxy.ts             # Next.js middleware — JWT auth guard
+├── proxy.ts             # Next.js 16 proxy (JWT auth guard) — equivalent of middleware
 └── types/               # media.ts, scope.ts
 ```
 
 ### Auth Flow
 
-`src/proxy.ts` is the Next.js middleware. It:
+`src/proxy.ts` is the Next.js 16 request proxy (the Next.js 16 equivalent of `middleware.ts`). It:
 
 1. Reads the `token` HTTP-only cookie
 2. Verifies the JWT signature with `JWT_SECRET`
@@ -74,6 +85,8 @@ src/
 4. Applies to: `/api/me`, `/api/media-entry/:path*`, `/api/friends/:path*`, `/api/groups/:path*`
 
 API handlers read `x-user-id` directly from headers — no session lookup needed.
+
+Page-level auth: `src/app/(app)/layout.tsx` fetches `/api/me` on every render and redirects to `/login` on failure.
 
 ### Scope System
 
@@ -84,11 +97,11 @@ The UI uses `ScopeContext` to track whether the user is in **personal** or **gro
 | Personal | User's own media entries; full ownership               |
 | Group    | Shared entries within a group; governed by `GroupRole` |
 
-Group roles are enforced in API handlers (not middleware):
+Group roles are enforced in API handlers (not the proxy):
 
 | Role   | Permissions                                                  |
 | ------ | ------------------------------------------------------------ |
-| OWNER  | Delete group, add members (friends only), transfer ownership |
+| OWNER  | Delete group, add/kick members (friends only), transfer ownership |
 | MEMBER | View group, add/update group media entries, leave group      |
 
 Additional rules:
@@ -96,6 +109,15 @@ Additional rules:
 - Only friends can be added as group members
 - The last owner cannot leave without first transferring ownership
 - Personal `MediaEntry` access is validated by `entry.userId === x-user-id`
+- Group media routes use `mediaId` = the **Media catalog ID** (`media.id`), not the entry's own `id`
+
+### Topbar
+
+Every protected page renders a `Topbar` (server component) with:
+- "Keepsake" → links to `/`
+- `ScopeChooser` — dropdown of Personal + all user groups; navigates on change
+- Username display
+- `LogoutButton` — calls `POST /api/logout`, redirects to `/login`
 
 ## Backend Infrastructure
 
@@ -167,12 +189,13 @@ GroupMediaEntry id, groupId, mediaId, status, rating?, progress?, startedAt?, co
 
 ### Auth / Users
 
-| Method | Path         | Auth | Description                                    |
-| ------ | ------------ | ---- | ---------------------------------------------- |
-| POST   | `/api/users` | No   | Register new user                              |
-| GET    | `/api/users` | No   | List all users                                 |
-| POST   | `/api/login` | No   | Login — sets `token` JWT cookie (7-day expiry) |
-| GET    | `/api/me`    | Yes  | Current user profile                           |
+| Method | Path           | Auth | Description                                    |
+| ------ | -------------- | ---- | ---------------------------------------------- |
+| POST   | `/api/users`   | No   | Register new user                              |
+| GET    | `/api/users`   | No   | List all users                                 |
+| POST   | `/api/login`   | No   | Login — sets `token` JWT cookie (7-day expiry) |
+| POST   | `/api/logout`  | No   | Logout — clears `token` cookie                 |
+| GET    | `/api/me`      | Yes  | Current user profile                           |
 
 ### Media Catalog
 
@@ -193,28 +216,50 @@ GroupMediaEntry id, groupId, mediaId, status, rating?, progress?, startedAt?, co
 
 ### Friends
 
-| Method | Path                    | Auth | Description                     |
-| ------ | ----------------------- | ---- | ------------------------------- |
-| GET    | `/api/friends`          | Yes  | List current friends            |
-| POST   | `/api/friends/request`  | Yes  | Send friend request by username |
-| GET    | `/api/friends/requests` | Yes  | List pending incoming requests  |
-| POST   | `/api/friends/accept`   | Yes  | Accept a request by `requestId` |
+| Method | Path                         | Auth | Description                         |
+| ------ | ---------------------------- | ---- | ----------------------------------- |
+| GET    | `/api/friends`               | Yes  | List current friends (+ memberCount) |
+| POST   | `/api/friends/request`       | Yes  | Send friend request by username     |
+| GET    | `/api/friends/requests`      | Yes  | List pending incoming requests      |
+| POST   | `/api/friends/accept`        | Yes  | Accept a request by `requestId`     |
+| POST   | `/api/friends/reject`        | Yes  | Reject a request by `requestId`     |
+| DELETE | `/api/friends/[friendId]`    | Yes  | Remove a friend                     |
 
 ### Groups
 
-| Method | Path                                  | Auth         | Description                                        |
-| ------ | ------------------------------------- | ------------ | -------------------------------------------------- |
-| POST   | `/api/groups`                         | Yes          | Create group (creator auto-added as OWNER)         |
-| GET    | `/api/groups`                         | Yes          | List groups the user belongs to                    |
-| GET    | `/api/groups/[id]`                    | Yes (member) | Group details + member list                        |
-| DELETE | `/api/groups/[id]`                    | Yes (OWNER)  | Delete group                                       |
-| POST   | `/api/groups/[id]/members`            | Yes (OWNER)  | Add a friend as MEMBER                             |
-| POST   | `/api/groups/[id]/leave`              | Yes (member) | Leave the group                                    |
-| POST   | `/api/groups/[id]/transfer-ownership` | Yes (OWNER)  | Transfer OWNER role to another member              |
-| POST   | `/api/groups/[id]/media`              | Yes (member) | Add media to group                                 |
-| GET    | `/api/groups/[id]/media`              | Yes (member) | List group media (paginated; `?status=`, `?sort=`) |
-| PATCH  | `/api/groups/[id]/media/[mediaId]`    | Yes (member) | Update group media entry                           |
+| Method | Path                                    | Auth         | Description                                               |
+| ------ | --------------------------------------- | ------------ | --------------------------------------------------------- |
+| POST   | `/api/groups`                           | Yes          | Create group (creator auto-added as OWNER)                |
+| GET    | `/api/groups`                           | Yes          | List groups the user belongs to (includes `memberCount`)  |
+| GET    | `/api/groups/[id]`                      | Yes (member) | Group details + member list + requester's role            |
+| DELETE | `/api/groups/[id]`                      | Yes (OWNER)  | Delete group                                              |
+| POST   | `/api/groups/[id]/members`              | Yes (OWNER)  | Add a friend as MEMBER                                    |
+| DELETE | `/api/groups/[id]/members/[userId]`     | Yes (OWNER)  | Kick a member                                             |
+| POST   | `/api/groups/[id]/leave`                | Yes (member) | Leave the group                                           |
+| POST   | `/api/groups/[id]/transfer-ownership`   | Yes (OWNER)  | Transfer OWNER role to another member                     |
+| POST   | `/api/groups/[id]/media`                | Yes (member) | Add media to group                                        |
+| GET    | `/api/groups/[id]/media`                | Yes (member) | List group media (paginated; `?status=`, `?sort=`)        |
+| GET    | `/api/groups/[id]/media/[mediaId]`      | Yes (member) | Get single group media entry (includes `addedBy`)         |
+| PATCH  | `/api/groups/[id]/media/[mediaId]`      | Yes (member) | Update group media entry                                  |
+
+## Pages
+
+| Route                              | Description                                              |
+| ---------------------------------- | -------------------------------------------------------- |
+| `/`                                | Dashboard — 4×3 grid with nav tiles + recent media       |
+| `/login`                           | Login                                                    |
+| `/register`                        | Sign up                                                  |
+| `/media`                           | My Medias — 4×3 grid with filters + pagination           |
+| `/media/new`                       | Add Media — search/create media, set status/rating/progress |
+| `/media/[mediaId]`                 | Media detail — view/edit/delete personal entry           |
+| `/friends`                         | My Friends — friends list + incoming requests            |
+| `/groups`                          | My Groups — groups list + invite placeholder             |
+| `/groups/[id]`                     | Group hub — 3 nav tiles (Medias / Members / Add Media)   |
+| `/groups/[id]/media`               | Group Medias — 4×3 grid with filters + pagination        |
+| `/groups/[id]/media/new`           | Add Group Media                                          |
+| `/groups/[id]/media/[mediaId]`     | Group media detail — view/edit, shows "Added by"         |
+| `/groups/[id]/members`             | Members — list with kick/promote for OWNERs              |
 
 ## In Progress
 
-- **GroupInvites** — `src/components/groups/GroupInvites.tsx` exists but the `GroupInvite` Prisma model and API routes (`/api/groups/[id]/invites`) are not yet implemented. Needs schema update + migration before the UI can be wired up.
+- **GroupInvites** — `src/components/groups/GroupInvites.tsx` exists but the `GroupInvite` Prisma model and API routes (`/api/groups/[id]/invites`) are not yet implemented. Needs schema update + migration before the UI can be wired up. The `/groups` page shows a "coming soon" placeholder in the invites column.
